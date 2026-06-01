@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Автопарк</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<!-- Firebase v9 compat -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+/* ─── DESIGN TOKENS ─── */
+:root, [data-theme="light"] {
+  --font-body: 'Inter', 'Helvetica Neue', sans-serif;
+  --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem);
+  --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);
+  --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem);
+  --text-lg:   clamp(1.125rem, 1rem    + 0.75vw, 1.5rem);
+  --text-xl:   clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);
+  --space-1:.25rem; --space-2:.5rem; --space-3:.75rem; --space-4:1rem;
+  --space-5:1.25rem; --space-6:1.5rem; --space-8:2rem; --space-10:2.5rem;
+  --space-12:3rem; --space-16:4rem;
+  --radius-sm:.375rem; --radius-md:.5rem; --radius-lg:.75rem; --radius-xl:1rem; --radius-full:9999px;
+  --transition-interactive: 180ms cubic-bezier(0.16,1,0.3,1);
+  --color-bg:#f7f6f2; --color-surface:#f9f8f5; --color-surface-2:#fbfbf9;
+  --color-surface-offset:#f3f0ec; --color-surface-offset-2:#edeae5;
+  --color-surface-dynamic:#e6e4df; --color-divider:#dcd9d5; --color-border:#d4d1ca;
+  --color-text:#28251d; --color-text-muted:#7a7974; --color-text-faint:#bab9b4;
+  --color-text-inverse:#f9f8f4;
+  --color-primary:#01696f; --color-primary-hover:#0c4e54; --color-primary-active:#0f3638;
+  --color-primary-highlight:#cedcd8;
+  --color-warning:#964219; --color-warning-highlight:#ddcfc6;
+  --color-error:#c0392b; --color-error-highlight:#fde8e8;
+  --color-success:#437a22; --color-success-highlight:#d4dfcc;
+  --color-blue:#006494; --color-blue-highlight:#c6d8e4;
+  --color-orange:#da7101; --color-orange-highlight:#e7d7c4;
+  --color-purple:#7a39bb; --color-purple-highlight:#dacfde;
+  --shadow-sm:0 1px 2px oklch(0.2 0.01 80/0.06);
+  --shadow-md:0 4px 12px oklch(0.2 0.01 80/0.08);
+  --shadow-lg:0 12px 32px oklch(0.2 0.01 80/0.12);
+  --content-wide:1280px;
+}
+[data-theme="dark"] {
+  --color-bg:#171614; --color-surface:#1c1b19; --color-surface-2:#201f1d;
+  --color-surface-offset:#1d1c1a; --color-surface-offset-2:#22211f;
+  --color-surface-dynamic:#2d2c2a; --color-divider:#262523; --color-border:#393836;
+  --color-text:#cdccca; --color-text-muted:#797876; --color-text-faint:#5a5957;
+  --color-text-inverse:#2b2a28;
+  --color-primary:#4f98a3; --color-primary-hover:#227f8b; --color-primary-active:#1a626b;
+  --color-primary-highlight:#313b3b;
+  --color-warning:#bb653b; --color-warning-highlight:#564942;
+  --color-error:#dd6974; --color-error-highlight:#574848;
+  --color-success:#6daa45; --color-success-highlight:#3a4435;
+  --color-blue:#5591c7; --color-blue-highlight:#3a4550;
+  --color-orange:#fdab43; --color-orange-highlight:#564b3e;
+  --color-purple:#a86fdf; --color-purple-highlight:#4e4652;
+  --shadow-sm:0 1px 2px oklch(0 0 0/0.2); --shadow-md:0 4px 12px oklch(0 0 0/0.3); --shadow-lg:0 12px 32px oklch(0 0 0/0.4);
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme]){
+  --color-bg:#171614; --color-surface:#1c1b19; --color-surface-2:#201f1d;
+  --color-surface-offset:#1d1c1a; --color-surface-offset-2:#22211f;
+  --color-surface-dynamic:#2d2c2a; --color-divider:#262523; --color-border:#393836;
+  --color-text:#cdccca; --color-text-muted:#797876; --color-text-faint:#5a5957;
+  --color-text-inverse:#2b2a28;
+  --color-primary:#4f98a3; --color-primary-hover:#227f8b; --color-primary-active:#1a626b;
+  --color-primary-highlight:#313b3b;
+  --color-warning:#bb653b; --color-warning-highlight:#564942;
+  --color-error:#dd6974; --color-error-highlight:#574848;
+  --color-success:#6daa45; --color-success-highlight:#3a4435;
+  --color-blue:#5591c7; --color-blue-highlight:#3a4550;
+  --color-orange:#fdab43; --color-orange-highlight:#564b3e;
+  --color-purple:#a86fdf; --color-purple-highlight:#4e4652;
+  --shadow-sm:0 1px 2px oklch(0 0 0/0.2); --shadow-md:0 4px 12px oklch(0 0 0/0.3); --shadow-lg:0 12px 32px oklch(0 0 0/0.4);
+}}
+
+/* ─── BASE ─── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;scroll-behavior:smooth}
+body{min-height:100dvh;line-height:1.6;font-family:var(--font-body);font-size:var(--text-base);color:var(--color-text);background:var(--color-bg)}
+img,svg{display:block;max-width:100%}
+ul[role="list"]{list-style:none}
+input,button,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+table{border-collapse:collapse;width:100%}
+a,button,[role="button"],input,textarea,select{transition:color var(--transition-interactive),background var(--transition-interactive),border-color var(--transition-interactive),box-shadow var(--transition-interactive)}
+:focus-visible{outline:2px solid var(--color-primary);outline-offset:3px;border-radius:var(--radius-sm)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
+
+/* ─── LAYOUT ─── */
+.app-shell{display:grid;grid-template-columns:240px 1fr;grid-template-rows:auto 1fr;min-height:100dvh}
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:var(--space-4);padding:0 var(--space-6);height:56px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);position:sticky;top:0;z-index:100}
+.sidebar{background:var(--color-surface);border-right:1px solid var(--color-divider);padding:var(--space-4) 0;position:sticky;top:56px;height:calc(100dvh - 56px);overflow-y:auto}
+.main-content{padding:var(--space-8) var(--space-8);overflow-y:auto;background:var(--color-bg)}
+@media(max-width:768px){
+  .app-shell{grid-template-columns:1fr}
+  .sidebar{display:none;position:fixed;top:56px;left:0;width:240px;height:calc(100dvh - 56px);z-index:99;box-shadow:var(--shadow-lg)}
+  .sidebar.open{display:block}
+  .main-content{padding:var(--space-4)}
+}
+
+/* ─── TOPBAR ─── */
+.topbar-logo{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm);font-weight:600;color:var(--color-text);text-decoration:none;margin-right:auto}
+.topbar-logo svg{color:var(--color-primary)}
+.topbar-actions{display:flex;align-items:center;gap:var(--space-2)}
+.topbar-status{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);padding:var(--space-1) var(--space-3);background:var(--color-surface-offset);border-radius:var(--radius-full)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--color-text-faint)}
+.status-dot.connected{background:var(--color-success)}
+.status-dot.error{background:var(--color-error)}
+.btn-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:var(--radius-md);color:var(--color-text-muted)}
+.btn-icon:hover{background:var(--color-surface-offset);color:var(--color-text)}
+.menu-toggle{display:none}
+@media(max-width:768px){.menu-toggle{display:flex}}
+
+/* ─── SIDEBAR NAV ─── */
+.nav-section{padding:var(--space-2) var(--space-4);margin-bottom:var(--space-1)}
+.nav-section-label{font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-faint);margin-bottom:var(--space-2)}
+.nav-item{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--color-text-muted);text-decoration:none;cursor:pointer;width:100%;text-align:left;border:none;background:none}
+.nav-item:hover{background:var(--color-surface-offset);color:var(--color-text)}
+.nav-item.active{background:var(--color-primary-highlight);color:var(--color-primary);font-weight:500}
+[data-theme="dark"] .nav-item.active{color:var(--color-primary)}
+.nav-item svg{width:18px;height:18px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--color-error-highlight);color:var(--color-error);font-size:var(--text-xs);font-weight:600;padding:1px 6px;border-radius:var(--radius-full)}
+
+/* ─── VIEWS ─── */
+.view{display:none}
+.view.active{display:block}
+.page-header{margin-bottom:var(--space-8)}
+.page-title{font-size:var(--text-xl);font-weight:700;color:var(--color-text);line-height:1.2}
+.page-subtitle{font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1)}
+
+/* ─── KPI GRID ─── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--space-4);margin-bottom:var(--space-8)}
+.kpi-card{background:var(--color-surface);border:1px solid oklch(from var(--color-text) l c h/0.08);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-6);box-shadow:var(--shadow-sm)}
+.kpi-label{font-size:var(--text-xs);font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:var(--space-2)}
+.kpi-value{font-size:var(--text-xl);font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.kpi-value.urgent{color:var(--color-error)}
+.kpi-value.warning{color:var(--color-warning)}
+.kpi-value.ok{color:var(--color-success)}
+.kpi-value.neutral{color:var(--color-text)}
+.kpi-sub{font-size:var(--text-xs);color:var(--color-text-muted);margin-top:var(--space-1)}
+
+/* ─── SECTION ─── */
+.section{background:var(--color-surface);border:1px solid oklch(from var(--color-text) l c h/0.08);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:var(--space-6)}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:var(--space-4) var(--space-6);border-bottom:1px solid var(--color-divider)}
+.section-title{font-size:var(--text-base);font-weight:600;color:var(--color-text)}
+.section-actions{display:flex;gap:var(--space-2)}
+
+/* ─── BUTTONS ─── */
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:500;border:none;cursor:pointer;line-height:1.4;white-space:nowrap}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--color-primary);color:var(--color-text-inverse)}
+.btn-primary:hover{background:var(--color-primary-hover)}
+.btn-primary:active{background:var(--color-primary-active)}
+.btn-ghost{background:transparent;color:var(--color-text-muted);border:1px solid oklch(from var(--color-text) l c h/0.12)}
+.btn-ghost:hover{background:var(--color-surface-offset);color:var(--color-text);border-color:oklch(from var(--color-text) l c h/0.2)}
+.btn-sm{padding:var(--space-1) var(--space-3);font-size:var(--text-xs)}
+.btn-danger{background:var(--color-error-highlight);color:var(--color-error)}
+.btn-danger:hover{background:var(--color-error);color:#fff}
+
+/* ─── TABLE ─── */
+.table-wrap{overflow-x:auto}
+.data-table{width:100%;font-size:var(--text-sm)}
+.data-table th{padding:var(--space-3) var(--space-4);text-align:left;font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);border-bottom:1px solid var(--color-divider);white-space:nowrap}
+.data-table td{padding:var(--space-3) var(--space-4);border-bottom:1px solid oklch(from var(--color-text) l c h/0.06);vertical-align:middle;font-variant-numeric:tabular-nums}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--color-surface-offset)}
+.data-table .actions{display:flex;gap:var(--space-1)}
+.data-table .btn-icon{width:28px;height:28px}
+
+/* ─── BADGE ─── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:500;white-space:nowrap}
+.badge-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.badge-ok{background:var(--color-success-highlight);color:var(--color-success)}
+.badge-warning{background:var(--color-warning-highlight);color:var(--color-warning)}
+.badge-error{background:var(--color-error-highlight);color:var(--color-error)}
+.badge-blue{background:var(--color-blue-highlight);color:var(--color-blue)}
+.badge-orange{background:var(--color-orange-highlight);color:var(--color-orange)}
+.badge-purple{background:var(--color-purple-highlight);color:var(--color-purple)}
+.badge-neutral{background:var(--color-surface-offset);color:var(--color-text-muted)}
+
+/* ─── MODAL ─── */
+.modal-backdrop{position:fixed;inset:0;background:oklch(0.1 0 0/0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:var(--space-4);opacity:0;pointer-events:none;transition:opacity 200ms ease}
+.modal-backdrop.open{opacity:1;pointer-events:all}
+.modal{background:var(--color-surface);border-radius:var(--radius-xl);padding:var(--space-8);width:100%;max-width:560px;max-height:90dvh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:translateY(16px);transition:transform 200ms ease}
+.modal-backdrop.open .modal{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)}
+.modal-title{font-size:var(--text-lg);font-weight:700}
+.modal-footer{display:flex;justify-content:flex-end;gap:var(--space-3);margin-top:var(--space-6);padding-top:var(--space-6);border-top:1px solid var(--color-divider)}
+
+/* ─── FORM ─── */
+.form-grid{display:grid;gap:var(--space-4)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+@media(max-width:480px){.form-row{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:var(--space-1)}
+.field label{font-size:var(--text-sm);font-weight:500;color:var(--color-text)}
+.field-hint{font-size:var(--text-xs);color:var(--color-text-muted)}
+.field input,.field select,.field textarea{padding:var(--space-2) var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface-2);color:var(--color-text);font-size:var(--text-sm);line-height:1.5}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--color-primary);outline-offset:0;border-color:var(--color-primary)}
+.field textarea{resize:vertical;min-height:80px}
+
+/* ─── ALERT BANNER ─── */
+.alert{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-4) var(--space-5);border-radius:var(--radius-lg);margin-bottom:var(--space-4);font-size:var(--text-sm)}
+.alert svg{width:18px;height:18px;flex-shrink:0;margin-top:2px}
+.alert-error{background:var(--color-error-highlight);color:var(--color-error)}
+.alert-warning{background:var(--color-warning-highlight);color:var(--color-warning)}
+.alert-info{background:var(--color-blue-highlight);color:var(--color-blue)}
+
+/* ─── EMPTY STATE ─── */
+.empty-state{display:flex;flex-direction:column;align-items:center;text-align:center;padding:var(--space-16) var(--space-8);color:var(--color-text-muted)}
+.empty-state svg{width:48px;height:48px;margin-bottom:var(--space-4);color:var(--color-text-faint)}
+.empty-state h3{color:var(--color-text);margin-bottom:var(--space-2);font-size:var(--text-base);font-weight:600}
+.empty-state p{max-width:32ch;margin-bottom:var(--space-6);font-size:var(--text-sm)}
+
+/* ─── FILTER BAR ─── */
+.filter-bar{display:flex;gap:var(--space-3);padding:var(--space-4) var(--space-6);border-bottom:1px solid var(--color-divider);flex-wrap:wrap}
+.filter-bar input,.filter-bar select{padding:var(--space-2) var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface-2);color:var(--color-text);font-size:var(--text-sm);min-width:160px}
+
+/* ─── VEHICLE CARD (парк) ─── */
+.vehicles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-4);padding:var(--space-6)}
+.vehicle-card{background:var(--color-surface-2);border:1px solid oklch(from var(--color-text) l c h/0.08);border-radius:var(--radius-lg);padding:var(--space-5);transition:box-shadow var(--transition-interactive)}
+.vehicle-card:hover{box-shadow:var(--shadow-md)}
+.vehicle-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:var(--space-3)}
+.vehicle-card-title{font-weight:600;font-size:var(--text-base);color:var(--color-text)}
+.vehicle-card-plate{font-size:var(--text-xs);color:var(--color-text-muted);font-family:monospace;background:var(--color-surface-offset);padding:2px 6px;border-radius:var(--radius-sm);margin-top:2px}
+.vehicle-card-meta{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-3);font-size:var(--text-xs)}
+.vehicle-meta-item{display:flex;flex-direction:column;gap:2px}
+.vehicle-meta-label{color:var(--color-text-faint);text-transform:uppercase;letter-spacing:.04em;font-size:10px}
+.vehicle-meta-value{color:var(--color-text);font-weight:500}
+.vehicle-card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px solid var(--color-divider)}
+
+/* ─── ALERTS BLOCK ─── */
+.alerts-list{padding:var(--space-4) var(--space-6);display:flex;flex-direction:column;gap:var(--space-3)}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:600px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .vehicles-grid{grid-template-columns:1fr;padding:var(--space-4)}
+  .modal{padding:var(--space-5)}
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell" id="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <button class="btn-icon menu-toggle" id="menuToggle" aria-label="Меню">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <a class="topbar-logo" href="#">
+      <!-- LOGO SVG -->
+      <svg aria-label="ФлотМеникс" viewBox="0 0 32 32" width="28" height="28" fill="none">
+        <rect x="2" y="18" width="28" height="8" rx="2" fill="currentColor" opacity=".15"/>
+        <rect x="2" y="18" width="28" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M4 18V12a2 2 0 012-2h8l4-4h6a2 2 0 012 2v10" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        <circle cx="8" cy="26" r="2.5" fill="var(--color-bg)" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="24" cy="26" r="2.5" fill="var(--color-bg)" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="16" y1="8" x2="16" y2="14" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="22" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="1.5"/>
+      </svg>
+      ФлотМеникс
+    </a>
+
+    <div class="topbar-status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Подключение…</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-icon" id="themeToggle" data-theme-toggle aria-label="Переключить тему">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-section">
+        <div class="nav-section-label">Обзор</div>
+        <button class="nav-item active" data-view="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Дашборд
+        </button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">Автопарк</div>
+        <button class="nav-item" data-view="vehicles">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="10" width="22" height="8" rx="2"/><path d="M5 10V7a2 2 0 012-2h10a2 2 0 012 2v3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+          Транспорт
+        </button>
+        <button class="nav-item" data-view="routes">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/><circle cx="8" cy="6" r="1.5" fill="currentColor"/><circle cx="16" cy="12" r="1.5" fill="currentColor"/><circle cx="10" cy="18" r="1.5" fill="currentColor"/></svg>
+          Маршруты
+        </button>
+        <button class="nav-item" data-view="maintenance" id="navMaintenance">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+          Ремонт и ТО
+          <span class="nav-badge" id="maintenanceBadge" style="display:none">0</span>
+        </button>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ─── DASHBOARD ─── -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-header">
+        <h1 class="page-title">Дашборд</h1>
+        <p class="page-subtitle">Сводка по автопарку в реальном времени</p>
+      </div>
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi-card"><div class="kpi-label">Транспорт</div><div class="kpi-value neutral" id="kpiTotal">—</div><div class="kpi-sub">единиц в парке</div></div>
+        <div class="kpi-card"><div class="kpi-label">Активных маршрутов</div><div class="kpi-value ok" id="kpiRoutes">—</div><div class="kpi-sub">в движении сейчас</div></div>
+        <div class="kpi-card"><div class="kpi-label">Ближайшие ТО/ремонты</div><div class="kpi-value warning" id="kpiUpcoming">—</div><div class="kpi-sub">в ближайшие 7 дней</div></div>
+        <div class="kpi-card"><div class="kpi-label">Просроченные</div><div class="kpi-value urgent" id="kpiOverdue">—</div><div class="kpi-sub">требуют внимания</div></div>
+        <div class="kpi-card"><div class="kpi-label">Затраты на ТО (план)</div><div class="kpi-value neutral" id="kpiCost">—</div><div class="kpi-sub">рублей, открытые задачи</div></div>
+        <div class="kpi-card"><div class="kpi-label">Прибыль маршрутов</div><div class="kpi-value ok" id="kpiRevenue">—</div><div class="kpi-sub">рублей, все маршруты</div></div>
+      </div>
+
+      <!-- Alerts -->
+      <div class="section" id="alertsSection">
+        <div class="section-header"><span class="section-title">Требуют внимания</span></div>
+        <div class="alerts-list" id="alertsList"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><h3>Всё в порядке</h3><p>Нет срочных задач</p></div></div>
+      </div>
+
+      <!-- Recent maintenance -->
+      <div class="section">
+        <div class="section-header"><span class="section-title">Предстоящий ремонт / ТО</span></div>
+        <div class="table-wrap"><table class="data-table" id="dashMaintenanceTable">
+          <thead><tr><th>Транспорт</th><th>Вид работы</th><th>Дата</th><th>Сумма (₽)</th><th>Статус</th></tr></thead>
+          <tbody id="dashMaintenanceTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ─── VEHICLES ─── -->
+    <div class="view" id="view-vehicles">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:var(--space-4)">
+        <div><h1 class="page-title">Транспорт</h1><p class="page-subtitle">Данные по каждой единице парка</p></div>
+        <button class="btn btn-primary" id="addVehicleBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Добавить ТС</button>
+      </div>
+      <div class="vehicles-grid" id="vehiclesGrid">
+        <div class="empty-state" style="grid-column:1/-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="10" width="22" height="8" rx="2"/><path d="M5 10V7a2 2 0 012-2h10a2 2 0 012 2v3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+          <h3>Транспорт не добавлен</h3><p>Добавьте первое ТС в парк</p>
+          <button class="btn btn-primary" id="addVehicleBtn2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Добавить ТС</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── ROUTES ─── -->
+    <div class="view" id="view-routes">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:var(--space-4)">
+        <div><h1 class="page-title">Маршруты</h1><p class="page-subtitle">Рейсы, стоимость, статусы</p></div>
+        <button class="btn btn-primary" id="addRouteBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Новый маршрут</button>
+      </div>
+      <div class="section">
+        <div class="filter-bar">
+          <input type="text" id="routeSearch" placeholder="Поиск по маршруту / ТС…">
+          <select id="routeStatusFilter"><option value="">Все статусы</option><option value="active">В движении</option><option value="planned">Запланирован</option><option value="completed">Завершён</option></select>
+        </div>
+        <div class="table-wrap"><table class="data-table">
+          <thead><tr><th>Маршрут</th><th>Транспорт</th><th>Дата отправления</th><th>Дата прибытия</th><th>Стоимость (₽)</th><th>Статус</th><th></th></tr></thead>
+          <tbody id="routesTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ─── MAINTENANCE ─── -->
+    <div class="view" id="view-maintenance">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:var(--space-4)">
+        <div><h1 class="page-title">Ремонт и ТО</h1><p class="page-subtitle">Планирование и учёт обслуживания</p></div>
+        <button class="btn btn-primary" id="addMaintenanceBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Добавить задачу</button>
+      </div>
+      <div class="section">
+        <div class="filter-bar">
+          <input type="text" id="maintSearch" placeholder="Поиск…">
+          <select id="maintTypeFilter">
+            <option value="">Все виды</option>
+            <option value="to">ТО</option>
+            <option value="tire_tractor">Резина тягача</option>
+            <option value="tire_trailer">Резина прицепа</option>
+            <option value="repair_tractor">Ремонт тягача</option>
+            <option value="repair_trailer">Ремонт прицепа</option>
+          </select>
+          <select id="maintStatusFilter">
+            <option value="">Все статусы</option>
+            <option value="planned">Запланировано</option>
+            <option value="confirmed">Подтверждено</option>
+            <option value="overdue">Просрочено</option>
+            <option value="done">Выполнено</option>
+          </select>
+        </div>
+        <div class="table-wrap"><table class="data-table">
+          <thead><tr><th>Транспорт</th><th>Вид работы</th><th>Плановая дата</th><th>Стоимость (₽)</th><th>Статус</th><th>Исполнитель</th><th>Комментарий</th><th></th></tr></thead>
+          <tbody id="maintTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ─── MODALS ─── -->
+
+<!-- Vehicle modal -->
+<div class="modal-backdrop" id="vehicleModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="vehicleModalTitle">
+    <div class="modal-header">
+      <h2 class="modal-title" id="vehicleModalTitle">Добавить ТС</h2>
+      <button class="btn-icon" id="vehicleModalClose" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <form class="form-grid" id="vehicleForm" novalidate>
+      <input type="hidden" id="vehicleId">
+      <div class="form-row">
+        <div class="field"><label for="v_name">Наименование / Марка *</label><input type="text" id="v_name" placeholder="Volvo FH16" required></div>
+        <div class="field"><label for="v_plate">Госномер *</label><input type="text" id="v_plate" placeholder="В123АА54" required></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="v_type">Тип ТС</label>
+          <select id="v_type"><option value="truck">Тягач</option><option value="trailer">Прицеп</option><option value="truck_trailer">Тягач+Прицеп (сцепка)</option><option value="van">Фургон</option><option value="other">Иное</option></select>
+        </div>
+        <div class="field"><label for="v_year">Год выпуска</label><input type="number" id="v_year" min="1990" max="2030" placeholder="2020"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="v_vin">VIN / Рама</label><input type="text" id="v_vin" placeholder="WF0AXXGBBA1234567"></div>
+        <div class="field"><label for="v_mileage">Пробег (км)</label><input type="number" id="v_mileage" placeholder="320000"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="v_driver">Водитель</label><input type="text" id="v_driver" placeholder="Иванов И.И."></div>
+        <div class="field"><label for="v_status">Статус</label>
+          <select id="v_status"><option value="active">Активен</option><option value="route">В маршруте</option><option value="maintenance">На обслуживании</option><option value="idle">Простой</option></select>
+        </div>
+      </div>
+      <div class="field"><label for="v_notes">Примечания</label><textarea id="v_notes" placeholder="Доп. информация…"></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="vehicleModalCancel">Отмена</button>
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Route modal -->
+<div class="modal-backdrop" id="routeModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="routeModalTitle">
+    <div class="modal-header">
+      <h2 class="modal-title" id="routeModalTitle">Новый маршрут</h2>
+      <button class="btn-icon" id="routeModalClose" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <form class="form-grid" id="routeForm" novalidate>
+      <input type="hidden" id="routeId">
+      <div class="form-row">
+        <div class="field"><label for="r_from">Откуда *</label><input type="text" id="r_from" placeholder="Санкт-Петербург" required></div>
+        <div class="field"><label for="r_to">Куда *</label><input type="text" id="r_to" placeholder="Новосибирск" required></div>
+      </div>
+      <div class="field"><label for="r_vehicle">Транспортное средство *</label>
+        <select id="r_vehicle" required><option value="">— Выберите ТС —</option></select>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="r_depart">Дата отправления</label><input type="date" id="r_depart"></div>
+        <div class="field"><label for="r_arrive">Дата прибытия</label><input type="date" id="r_arrive"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="r_price">Стоимость рейса (₽)</label><input type="number" id="r_price" placeholder="150000" min="0"></div>
+        <div class="field"><label for="r_status">Статус</label>
+          <select id="r_status"><option value="planned">Запланирован</option><option value="active">В движении</option><option value="completed">Завершён</option></select>
+        </div>
+      </div>
+      <div class="field"><label for="r_cargo">Груз / описание</label><input type="text" id="r_cargo" placeholder="Стройматериалы, 20т"></div>
+      <div class="field"><label for="r_notes">Примечания</label><textarea id="r_notes" placeholder="Контакты, особенности маршрута…"></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="routeModalCancel">Отмена</button>
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Maintenance modal -->
+<div class="modal-backdrop" id="maintModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="maintModalTitle">
+    <div class="modal-header">
+      <h2 class="modal-title" id="maintModalTitle">Добавить задачу</h2>
+      <button class="btn-icon" id="maintModalClose" aria-label="Закрыть"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <form class="form-grid" id="maintForm" novalidate>
+      <input type="hidden" id="maintId">
+      <div class="field"><label for="m_vehicle">Транспортное средство *</label>
+        <select id="m_vehicle" required><option value="">— Выберите ТС —</option></select>
+      </div>
+      <div class="field"><label for="m_type">Вид работы *</label>
+        <select id="m_type" required>
+          <option value="">— Выберите вид —</option>
+          <option value="to">ТО (техническое обслуживание)</option>
+          <option value="tire_tractor">Переобуть резину — тягач</option>
+          <option value="tire_trailer">Переобуть резину — прицеп</option>
+          <option value="repair_tractor">Ремонт тягача</option>
+          <option value="repair_trailer">Ремонт прицепа</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="m_date">Плановая дата</label><input type="date" id="m_date"></div>
+        <div class="field"><label for="m_cost">Примерная стоимость (₽)</label><input type="number" id="m_cost" min="0" placeholder="25000"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="m_status">Статус</label>
+          <select id="m_status">
+            <option value="planned">Запланировано</option>
+            <option value="confirmed">Подтверждено (СТО забронировано)</option>
+            <option value="done">Выполнено</option>
+          </select>
+        </div>
+        <div class="field"><label for="m_assignee">Ответственный</label><input type="text" id="m_assignee" placeholder="Петров А.В."></div>
+      </div>
+      <div class="field"><label for="m_notes">Описание / Комментарий</label><textarea id="m_notes" placeholder="Что именно нужно сделать, симптомы…"></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="maintModalCancel">Отмена</button>
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete confirm -->
+<div class="modal-backdrop" id="deleteModal">
+  <div class="modal" role="dialog" style="max-width:400px">
+    <div class="modal-header"><h2 class="modal-title">Удалить запись?</h2></div>
+    <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Это действие нельзя отменить.</p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="deleteCancelBtn">Отмена</button>
+      <button class="btn btn-danger" id="deleteConfirmBtn">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   FIREBASE CONFIG — замените на ваши данные
+   Firebase Console → Project → Settings → SDK
+   ══════════════════════════════════════════ */
+const FIREBASE_CONFIG = {
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCQpOVYNoesu-Jvp67ghZ2gqWWWWHtJUCo",
+  authDomain: "eridanauto-d72a5.firebaseapp.com",
+  databaseURL: https://eridanauto-d72a5-default-rtdb.firebaseio.com/,
+  projectId: "eridanauto-d72a5",
+  storageBucket: "eridanauto-d72a5.firebasestorage.app",
+  messagingSenderId: "475520286124",
+  appId: "1:475520286124:web:d7b9a454607bcfbd0f8e09",
+  measurementId: "G-JPSETTW3J9"
+};
+
+/* ── IN-MEMORY FALLBACK (пока Firebase не настроен) ── */
+let useFirebase = false;
+let db = null;
+const localData = { vehicles:{}, routes:{}, maintenance:{} };
+
+function tryInitFirebase() {
+  try {
+    if (FIREBASE_CONFIG.apiKey === 'PASTE_YOUR_API_KEY') return false;
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    return true;
+  } catch(e){ return false; }
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* ── DB ABSTRACTION ── */
+async function dbSet(path, data) {
+  if (useFirebase) return db.ref(path).set(data);
+  const parts = path.split('/');
+  let obj = localData;
+  for(let i=0;i<parts.length-1;i++) obj = obj[parts[i]] = obj[parts[i]]||{};
+  obj[parts[parts.length-1]] = data;
+  renderAll();
+}
+async function dbRemove(path) {
+  if (useFirebase) return db.ref(path).remove();
+  const parts = path.split('/');
+  let obj = localData;
+  for(let i=0;i<parts.length-1;i++) obj = obj[parts[i]]||{};
+  delete obj[parts[parts.length-1]];
+  renderAll();
+}
+function dbListen(path, cb) {
+  if (useFirebase) {
+    db.ref(path).on('value', snap => {
+      const val = snap.val() || {};
+      cb(val);
+    });
+  }
+}
+
+/* ── STATE ── */
+let vehicles = {}, routes = {}, maintenance = {};
+
+/* ── THEME TOGGLE ── */
+(function(){
+  const t=document.getElementById('themeToggle'), r=document.documentElement;
+  let d=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+  r.setAttribute('data-theme',d);
+  function updateIcon(){ t.innerHTML = d==='dark' ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>' : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'; }
+  updateIcon();
+  t.addEventListener('click',()=>{ d=d==='dark'?'light':'dark'; r.setAttribute('data-theme',d); updateIcon(); });
+})();
+
+/* ── MOBILE MENU ── */
+document.getElementById('menuToggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+});
+
+/* ── NAV ── */
+document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+    document.getElementById('sidebar').classList.remove('open');
+  });
+});
+
+/* ══ HELPERS ══ */
+function fmtDate(d){ if(!d) return '—'; const dt=new Date(d); return isNaN(dt)?d:dt.toLocaleDateString('ru-RU'); }
+function fmtMoney(v){ if(!v && v!==0) return '—'; return Number(v).toLocaleString('ru-RU')+''; }
+function daysUntil(dateStr){ if(!dateStr) return null; const diff=new Date(dateStr)-new Date(); return Math.ceil(diff/86400000); }
+
+const WORK_TYPE_LABEL = {
+  to: 'ТО', tire_tractor:'Резина тягача', tire_trailer:'Резина прицепа',
+  repair_tractor:'Ремонт тягача', repair_trailer:'Ремонт прицепа'
+};
+const WORK_TYPE_BADGE = {
+  to:'badge-blue', tire_tractor:'badge-orange', tire_trailer:'badge-purple',
+  repair_tractor:'badge-error', repair_trailer:'badge-warning'
+};
+const STATUS_LABEL_M = { planned:'Запланировано', confirmed:'Подтверждено', done:'Выполнено', overdue:'Просрочено' };
+const STATUS_BADGE_M = { planned:'badge-warning', confirmed:'badge-blue', done:'badge-ok', overdue:'badge-error' };
+const STATUS_LABEL_V = { active:'Активен', route:'В маршруте', maintenance:'На обслуживании', idle:'Простой' };
+const STATUS_BADGE_V = { active:'badge-ok', route:'badge-blue', maintenance:'badge-warning', idle:'badge-neutral' };
+const STATUS_LABEL_R = { planned:'Запланирован', active:'В движении', completed:'Завершён' };
+const STATUS_BADGE_R = { planned:'badge-neutral', active:'badge-ok', completed:'badge-blue' };
+const TYPE_LABEL_V = { truck:'Тягач', trailer:'Прицеп', truck_trailer:'Сцепка', van:'Фургон', other:'Иное' };
+
+function badge(cls, text, dot=false){ return `<span class="badge ${cls}">${dot?`<span class="badge-dot"></span>`:''}${text}</span>`; }
+
+function getMaintStatus(m) {
+  if(m.status==='done') return 'done';
+  if(!m.date) return m.status||'planned';
+  const d = daysUntil(m.date);
+  if(d !== null && d < 0) return 'overdue';
+  return m.status||'planned';
+}
+
+/* ══ RENDER ══ */
+function renderAll() {
+  renderDashboard();
+  renderVehicles();
+  renderRoutes();
+  renderMaintenance();
+}
+
+/* ── DASHBOARD ── */
+function renderDashboard() {
+  const vs = Object.values(vehicles);
+  const rs = Object.values(routes);
+  const ms = Object.values(maintenance);
+  const now = new Date();
+  const in7 = new Date(now.getTime()+7*86400000);
+
+  document.getElementById('kpiTotal').textContent = vs.length;
+  document.getElementById('kpiRoutes').textContent = rs.filter(r=>r.status==='active').length;
+
+  const upcoming = ms.filter(m => {
+    const s = getMaintStatus(m);
+    if(s==='done') return false;
+    if(s==='overdue') return false;
+    if(!m.date) return false;
+    const d = new Date(m.date);
+    return d>=now && d<=in7;
+  });
+  document.getElementById('kpiUpcoming').textContent = upcoming.length;
+
+  const overdue = ms.filter(m => getMaintStatus(m)==='overdue');
+  document.getElementById('kpiOverdue').textContent = overdue.length;
+
+  const cost = ms.filter(m=>getMaintStatus(m)!=='done').reduce((a,m)=>a+Number(m.cost||0),0);
+  document.getElementById('kpiCost').textContent = fmtMoney(cost);
+  const revenue = rs.reduce((a,r)=>a+Number(r.price||0),0);
+  document.getElementById('kpiRevenue').textContent = fmtMoney(revenue);
+
+  // Alerts
+  const alerts = [];
+  overdue.forEach(m=>{
+    const v = vehicles[m.vehicleId];
+    alerts.push({type:'error',text:`Просрочено: ${v?v.name:'ТС'} — ${WORK_TYPE_LABEL[m.type]||m.type} (${fmtDate(m.date)})`});
+  });
+  upcoming.forEach(m=>{
+    const v = vehicles[m.vehicleId];
+    const d = daysUntil(m.date);
+    alerts.push({type:'warning',text:`Через ${d} дн.: ${v?v.name:'ТС'} — ${WORK_TYPE_LABEL[m.type]||m.type} (${fmtDate(m.date)})`});
+  });
+
+  const alertsList = document.getElementById('alertsList');
+  if(alerts.length===0){
+    alertsList.innerHTML=`<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><h3>Всё в порядке</h3><p>Нет срочных задач</p></div>`;
+  } else {
+    alertsList.innerHTML = alerts.map(a=>`<div class="alert alert-${a.type}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">${a.type==='error'?'<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>':'<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/>'}' + '</svg><span>' + a.text + '</span></div>').join('');
+  }
+
+  // Dash table
+  const sorted = ms.filter(m=>getMaintStatus(m)!=='done').sort((a,b)=>new Date(a.date||'9999')-new Date(b.date||'9999')).slice(0,10);
+  const tbody = document.getElementById('dashMaintenanceTbody');
+  if(!sorted.length){ tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--color-text-muted);padding:var(--space-8)">Нет предстоящих задач</td></tr>`; return; }
+  tbody.innerHTML = sorted.map(m=>{
+    const v = vehicles[m.vehicleId];
+    const s = getMaintStatus(m);
+    return `<tr>
+      <td><strong>${v?v.name:'—'}</strong><br><span style="font-size:var(--text-xs);color:var(--color-text-muted)">${v?v.plate:''}</span></td>
+      <td>${badge(WORK_TYPE_BADGE[m.type]||'badge-neutral', WORK_TYPE_LABEL[m.type]||m.type)}</td>
+      <td>${fmtDate(m.date)}</td>
+      <td style="font-variant-numeric:tabular-nums">${fmtMoney(m.cost)}</td>
+      <td>${badge(STATUS_BADGE_M[s], STATUS_LABEL_M[s], true)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── VEHICLES ── */
+function renderVehicles() {
+  const vs = Object.entries(vehicles);
+  const grid = document.getElementById('vehiclesGrid');
+  if(!vs.length){
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="10" width="22" height="8" rx="2"/><path d="M5 10V7a2 2 0 012-2h10a2 2 0 012 2v3"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><h3>Транспорт не добавлен</h3><p>Добавьте первое ТС в парк</p><button class="btn btn-primary" id="addVehicleBtn2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 5v14M5 12h14"/></svg> Добавить ТС</button></div>`;
+    document.getElementById('addVehicleBtn2').addEventListener('click',()=>openVehicleModal());
+    return;
+  }
+  grid.innerHTML = vs.map(([id,v])=>{
+    const ms = Object.values(maintenance).filter(m=>m.vehicleId===id && getMaintStatus(m)!=='done');
+    return `<div class="vehicle-card">
+      <div class="vehicle-card-header">
+        <div>
+          <div class="vehicle-card-title">${v.name||'—'}</div>
+          <div class="vehicle-card-plate">${v.plate||''}</div>
+        </div>
+        ${badge(STATUS_BADGE_V[v.status]||'badge-neutral', STATUS_LABEL_V[v.status]||v.status, true)}
+      </div>
+      <div class="vehicle-card-meta">
+        <div class="vehicle-meta-item"><span class="vehicle-meta-label">Тип</span><span class="vehicle-meta-value">${TYPE_LABEL_V[v.type]||v.type||'—'}</span></div>
+        <div class="vehicle-meta-item"><span class="vehicle-meta-label">Год</span><span class="vehicle-meta-value">${v.year||'—'}</span></div>
+        <div class="vehicle-meta-item"><span class="vehicle-meta-label">Водитель</span><span class="vehicle-meta-value">${v.driver||'—'}</span></div>
+        <div class="vehicle-meta-item"><span class="vehicle-meta-label">Пробег</span><span class="vehicle-meta-value">${v.mileage?Number(v.mileage).toLocaleString('ru-RU')+' км':'—'}</span></div>
+      </div>
+      ${ms.length?`<div style="margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--color-divider);font-size:var(--text-xs);color:var(--color-warning)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>${ms.length} задач по ТО/ремонту</div>`:''}
+      <div class="vehicle-card-footer">
+        <span style="font-size:var(--text-xs);color:var(--color-text-muted)">${v.vin?'VIN: '+v.vin:''}</span>
+        <div style="display:flex;gap:var(--space-1)">
+          <button class="btn-icon" onclick="openVehicleModal('${id}')" aria-label="Редактировать"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="btn-icon" onclick="confirmDelete('vehicles','${id}')" aria-label="Удалить"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── ROUTES ── */
+function renderRoutes() {
+  const search = (document.getElementById('routeSearch').value||'').toLowerCase();
+  const sf = document.getElementById('routeStatusFilter').value;
+  let rs = Object.entries(routes);
+  if(search) rs = rs.filter(([,r])=>(r.from+r.to+((vehicles[r.vehicleId]||{}).name||'')).toLowerCase().includes(search));
+  if(sf) rs = rs.filter(([,r])=>r.status===sf);
+  rs.sort((a,b)=>new Date(b[1].depart||0)-new Date(a[1].depart||0));
+  const tbody = document.getElementById('routesTbody');
+  if(!rs.length){ tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);padding:var(--space-8)">Нет маршрутов</td></tr>`; return; }
+  tbody.innerHTML = rs.map(([id,r])=>{
+    const v = vehicles[r.vehicleId];
+    return `<tr>
+      <td><strong>${r.from||'—'} → ${r.to||'—'}</strong>${r.cargo?`<br><span style="font-size:var(--text-xs);color:var(--color-text-muted)">${r.cargo}</span>`:''}</td>
+      <td>${v?`${v.name}<br><span style="font-size:var(--text-xs);color:var(--color-text-muted)">${v.plate}</span>`:'—'}</td>
+      <td>${fmtDate(r.depart)}</td>
+      <td>${fmtDate(r.arrive)}</td>
+      <td style="font-variant-numeric:tabular-nums">${fmtMoney(r.price)}</td>
+      <td>${badge(STATUS_BADGE_R[r.status]||'badge-neutral', STATUS_LABEL_R[r.status]||r.status, true)}</td>
+      <td><div class="actions">
+        <button class="btn-icon" onclick="openRouteModal('${id}')" aria-label="Редактировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn-icon" onclick="confirmDelete('routes','${id}')" aria-label="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── MAINTENANCE ── */
+function renderMaintenance() {
+  const search = (document.getElementById('maintSearch').value||'').toLowerCase();
+  const tf = document.getElementById('maintTypeFilter').value;
+  const sf = document.getElementById('maintStatusFilter').value;
+  let ms = Object.entries(maintenance);
+  if(search) ms = ms.filter(([,m])=>((vehicles[m.vehicleId]||{}).name||'').toLowerCase().includes(search)||(m.notes||'').toLowerCase().includes(search));
+  if(tf) ms = ms.filter(([,m])=>m.type===tf);
+  if(sf) ms = ms.filter(([,m])=>getMaintStatus(m)===sf);
+  ms.sort((a,b)=>{
+    const da=new Date(a[1].date||'9999'), db2=new Date(b[1].date||'9999');
+    return da-db2;
+  });
+  const tbody = document.getElementById('maintTbody');
+  // badge count
+  const urgent = Object.values(maintenance).filter(m=>{ const s=getMaintStatus(m); return s==='overdue'||s==='planned'; }).length;
+  const badge2 = document.getElementById('maintenanceBadge');
+  if(urgent>0){ badge2.style.display=''; badge2.textContent=urgent; }
+  else badge2.style.display='none';
+
+  if(!ms.length){ tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--color-text-muted);padding:var(--space-8)">Нет задач</td></tr>`; return; }
+  tbody.innerHTML = ms.map(([id,m])=>{
+    const v = vehicles[m.vehicleId];
+    const s = getMaintStatus(m);
+    return `<tr style="${s==='overdue'?'background:color-mix(in oklab,var(--color-error-highlight) 40%,transparent)':''}">
+      <td><strong>${v?v.name:'—'}</strong><br><span style="font-size:var(--text-xs);color:var(--color-text-muted)">${v?v.plate:''}</span></td>
+      <td>${badge(WORK_TYPE_BADGE[m.type]||'badge-neutral', WORK_TYPE_LABEL[m.type]||m.type)}</td>
+      <td>${fmtDate(m.date)}</td>
+      <td style="font-variant-numeric:tabular-nums">${fmtMoney(m.cost)}</td>
+      <td>${badge(STATUS_BADGE_M[s], STATUS_LABEL_M[s], true)}</td>
+      <td>${m.assignee||'—'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.notes||''}</td>
+      <td><div class="actions">
+        <button class="btn-icon" onclick="openMaintModal('${id}')" aria-label="Редактировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn-icon" onclick="confirmDelete('maintenance','${id}')" aria-label="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ══ VEHICLE SELECTS (refresh on change) ══ */
+function refreshVehicleSelects() {
+  const opts = `<option value="">— Выберите ТС —</option>` +
+    Object.entries(vehicles).map(([id,v])=>`<option value="${id}">${v.name||'—'} ${v.plate?'('+v.plate+')':''}</option>`).join('');
+  document.getElementById('r_vehicle').innerHTML = opts;
+  document.getElementById('m_vehicle').innerHTML = opts;
+}
+
+/* ══ MODAL HELPERS ══ */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-backdrop').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open')); });
+
+/* ── VEHICLE MODAL ── */
+function openVehicleModal(id=null) {
+  document.getElementById('vehicleId').value = id||'';
+  document.getElementById('vehicleModalTitle').textContent = id ? 'Редактировать ТС' : 'Добавить ТС';
+  const v = id ? (vehicles[id]||{}) : {};
+  document.getElementById('v_name').value = v.name||'';
+  document.getElementById('v_plate').value = v.plate||'';
+  document.getElementById('v_type').value = v.type||'truck';
+  document.getElementById('v_year').value = v.year||'';
+  document.getElementById('v_vin').value = v.vin||'';
+  document.getElementById('v_mileage').value = v.mileage||'';
+  document.getElementById('v_driver').value = v.driver||'';
+  document.getElementById('v_status').value = v.status||'active';
+  document.getElementById('v_notes').value = v.notes||'';
+  openModal('vehicleModal');
+}
+document.getElementById('addVehicleBtn').addEventListener('click',()=>openVehicleModal());
+document.getElementById('vehicleModalClose').addEventListener('click',()=>closeModal('vehicleModal'));
+document.getElementById('vehicleModalCancel').addEventListener('click',()=>closeModal('vehicleModal'));
+document.getElementById('vehicleForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const id = document.getElementById('vehicleId').value || uid();
+  const data = {
+    name:document.getElementById('v_name').value.trim(),
+    plate:document.getElementById('v_plate').value.trim().toUpperCase(),
+    type:document.getElementById('v_type').value,
+    year:document.getElementById('v_year').value,
+    vin:document.getElementById('v_vin').value.trim().toUpperCase(),
+    mileage:document.getElementById('v_mileage').value,
+    driver:document.getElementById('v_driver').value.trim(),
+    status:document.getElementById('v_status').value,
+    notes:document.getElementById('v_notes').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+  await dbSet(`vehicles/${id}`, data);
+  closeModal('vehicleModal');
+  if(!useFirebase){ vehicles[id]=data; refreshVehicleSelects(); renderAll(); }
+});
+
+/* ── ROUTE MODAL ── */
+function openRouteModal(id=null) {
+  refreshVehicleSelects();
+  document.getElementById('routeId').value = id||'';
+  document.getElementById('routeModalTitle').textContent = id ? 'Редактировать маршрут' : 'Новый маршрут';
+  const r = id ? (routes[id]||{}) : {};
+  document.getElementById('r_from').value = r.from||'';
+  document.getElementById('r_to').value = r.to||'';
+  document.getElementById('r_vehicle').value = r.vehicleId||'';
+  document.getElementById('r_depart').value = r.depart||'';
+  document.getElementById('r_arrive').value = r.arrive||'';
+  document.getElementById('r_price').value = r.price||'';
+  document.getElementById('r_status').value = r.status||'planned';
+  document.getElementById('r_cargo').value = r.cargo||'';
+  document.getElementById('r_notes').value = r.notes||'';
+  openModal('routeModal');
+}
+document.getElementById('addRouteBtn').addEventListener('click',()=>openRouteModal());
+document.getElementById('routeModalClose').addEventListener('click',()=>closeModal('routeModal'));
+document.getElementById('routeModalCancel').addEventListener('click',()=>closeModal('routeModal'));
+document.getElementById('routeForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const id = document.getElementById('routeId').value || uid();
+  const data = {
+    from:document.getElementById('r_from').value.trim(),
+    to:document.getElementById('r_to').value.trim(),
+    vehicleId:document.getElementById('r_vehicle').value,
+    depart:document.getElementById('r_depart').value,
+    arrive:document.getElementById('r_arrive').value,
+    price:document.getElementById('r_price').value,
+    status:document.getElementById('r_status').value,
+    cargo:document.getElementById('r_cargo').value.trim(),
+    notes:document.getElementById('r_notes').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+  await dbSet(`routes/${id}`, data);
+  closeModal('routeModal');
+  if(!useFirebase){ routes[id]=data; renderAll(); }
+});
+document.getElementById('routeSearch').addEventListener('input',renderRoutes);
+document.getElementById('routeStatusFilter').addEventListener('change',renderRoutes);
+
+/* ── MAINTENANCE MODAL ── */
+function openMaintModal(id=null) {
+  refreshVehicleSelects();
+  document.getElementById('maintId').value = id||'';
+  document.getElementById('maintModalTitle').textContent = id ? 'Редактировать задачу' : 'Добавить задачу';
+  const m = id ? (maintenance[id]||{}) : {};
+  document.getElementById('m_vehicle').value = m.vehicleId||'';
+  document.getElementById('m_type').value = m.type||'';
+  document.getElementById('m_date').value = m.date||'';
+  document.getElementById('m_cost').value = m.cost||'';
+  document.getElementById('m_status').value = m.status||'planned';
+  document.getElementById('m_assignee').value = m.assignee||'';
+  document.getElementById('m_notes').value = m.notes||'';
+  openModal('maintModal');
+}
+document.getElementById('addMaintenanceBtn').addEventListener('click',()=>openMaintModal());
+document.getElementById('maintModalClose').addEventListener('click',()=>closeModal('maintModal'));
+document.getElementById('maintModalCancel').addEventListener('click',()=>closeModal('maintModal'));
+document.getElementById('maintForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const id = document.getElementById('maintId').value || uid();
+  const data = {
+    vehicleId:document.getElementById('m_vehicle').value,
+    type:document.getElementById('m_type').value,
+    date:document.getElementById('m_date').value,
+    cost:document.getElementById('m_cost').value,
+    status:document.getElementById('m_status').value,
+    assignee:document.getElementById('m_assignee').value.trim(),
+    notes:document.getElementById('m_notes').value.trim(),
+    updatedAt: new Date().toISOString()
+  };
+  await dbSet(`maintenance/${id}`, data);
+  closeModal('maintModal');
+  if(!useFirebase){ maintenance[id]=data; renderAll(); }
+});
+document.getElementById('maintSearch').addEventListener('input',renderMaintenance);
+document.getElementById('maintTypeFilter').addEventListener('change',renderMaintenance);
+document.getElementById('maintStatusFilter').addEventListener('change',renderMaintenance);
+
+/* ── DELETE ── */
+let pendingDelete = null;
+function confirmDelete(collection, id) {
+  pendingDelete = {collection, id};
+  openModal('deleteModal');
+}
+document.getElementById('deleteCancelBtn').addEventListener('click',()=>{ pendingDelete=null; closeModal('deleteModal'); });
+document.getElementById('deleteConfirmBtn').addEventListener('click',async()=>{
+  if(!pendingDelete) return;
+  const {collection, id} = pendingDelete;
+  await dbRemove(`${collection}/${id}`);
+  if(!useFirebase){
+    if(collection==='vehicles') delete vehicles[id];
+    else if(collection==='routes') delete routes[id];
+    else if(collection==='maintenance') delete maintenance[id];
+    renderAll();
+  }
+  pendingDelete=null; closeModal('deleteModal');
+});
+
+/* ══ FIREBASE INIT & LISTENERS ══ */
+useFirebase = tryInitFirebase();
+
+const dot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+if(useFirebase){
+  db.ref('.info/connected').on('value', snap=>{
+    if(snap.val()){
+      dot.className='status-dot connected';
+      statusText.textContent='Firebase синхронизирован';
+    } else {
+      dot.className='status-dot error';
+      statusText.textContent='Нет соединения';
+    }
+  });
+  dbListen('vehicles', val=>{ vehicles=val; refreshVehicleSelects(); renderAll(); });
+  dbListen('routes', val=>{ routes=val; renderAll(); });
+  dbListen('maintenance', val=>{ maintenance=val; renderAll(); });
+} else {
+  dot.className='status-dot';
+  statusText.innerHTML='<span style="color:var(--color-warning)">⚠ Локальный режим — настройте Firebase</span>';
+  renderAll();
+}
+
+/* ── INIT LUCIDE ICONS ── */
+if(window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>
